@@ -1,0 +1,20 @@
+{
+  "name": "HiveGame",
+  "version": "1.0.0",
+  "description": "A Multiplayer Hive Game -- based on the board game.",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server ."
+  },
+  "keywords": [
+    "Hive",
+    "Multiplayer",
+    "Phaser"
+  ],
+  "author": "Oliver Lance",
+  "license": "MIT",
+  "dependencies": {
+    "http-server": "^14.1.1",
+    "phaser": "^3.60.0"
+  }
+}
