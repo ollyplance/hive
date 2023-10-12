@@ -8,10 +8,60 @@ import {
     Point,
 } from './js/hexgrid.js';
 
-class PiecesUI {
+class PieceLeftUI {
+    constructor(ui, row, col, index) {
+        this.ui = ui
+        this.row = row
+        this.col = col
+        this.index = index
+        this.hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(this.col, this.row));
+        let corners = this.ui.piecesLeftLayout.polygonCorners(this.hex);
+        this.hexagonUI = this.ui.scene.add.polygon(0, 0, corners);
+
+        this.hexagonUI
+            .setInteractive(new Phaser.Geom.Polygon(corners),
+                                Phaser.Geom.Polygon.Contains)
+            .setFillStyle(this.ui.hive.whitePieces[this.index].color)
+            .setStrokeStyle(2, 0xFFFFFF)
+            .on('pointerdown', () => {
+                var piece = this.ui.hive.whitePieces[this.index]
+                if (!piece.active) {
+                    this.ui.hive.pieceClicked = piece
+                }
+            })
+            
+        this.ui.piecesLeft.add(this.hexagonUI);
+    }
+
+    updateUI() {
+        var piece = this.ui.hive.whitePieces[this.index]
+        if (piece.active) {
+            this.hexagonUI.setFillStyle(0xFFFFFF)
+        }
+    }
+}
+
+class PiecesLeftUI {
     constructor(scene, hive)
     {
+        this.scene = scene
+        this.hive = hive
 
+        this.data = []
+
+        this.piecesLeft = this.scene.add.group();
+        var orientation = Layout.flat;
+        this.piecesLeftLayout = new Layout(orientation, new Point(30, 30), new Point(700, 400));
+
+        var i = 0
+        for (var row = 0; row < 6; row++) {
+            for (var col = 0; col < 2; col++) {
+                if (i < this.hive.whitePieces.length) {
+                    this.data[i] = new PieceLeftUI(this, row, col, i)
+                }
+                i += 1
+            }
+        }
     }
 }
 
@@ -59,18 +109,12 @@ class Cell {
 
     pointerOver()
     {
-        let index = this.hive.pieceActive
-        if (0 <= index && index < this.hive.whitePieces.length) {
-            this.hexagon.setFillStyle(this.hive.whitePieces[index].color);
+        let piece = this.hive.pieceClicked
+        if (piece) {
+            this.hexagon.setFillStyle(piece.color);
         } else {
             this.hexagon.setFillStyle(0xCCCCCC, .3);
         }
-        // let data = this.hive.data;
-        // this.neighbors.forEach((offset) => {
-        //     if (0 <= offset.row && offset.row < data.length && 0 <= offset.col && offset.col < data[0].length) {
-        //         this.hive.data[offset.row][offset.col].hexagon.setFillStyle(0xFBF2B3);
-        //     }
-        // })
     }
 
     pointerOut()
@@ -78,32 +122,37 @@ class Cell {
         this.hexagon.setFillStyle(this.getCurrentColor());
     }
 
-    // click
+    // click on hex. What I want to do: if no piece is actively clicked, either make a piece actively clicked
+    // or nothing. Else -- check if hex is in active pieces possible moves, then place peice, make active
+    // change turn
     pointerDown()
     {
-        let index = this.hive.pieceActive
-        if (0 <= index && index < this.hive.whitePieces.length && (this.hive.firstMove || this.legalPlace())) {
+        let pieceToPlace = this.hive.pieceClicked
+        if (pieceToPlace && (pieceToPlace.legalPlace(this.hex))) {
             this.hive.firstMove = false
-            let deleted = this.hive.whitePieces.splice(index, 1)[0]
-            this.piece.push(deleted)
-            this.hive.pieceActive = this.hive.pieceActive ? this.hive.pieceActive - 1 : this.hive.whitePieces.length-1
+            this.hive.pieceClicked.active = true
+            this.piece.push(this.hive.pieceClicked)
+            this.hive.pieceClicked = null
+            this.hive.piecesUI.data.forEach((piece) => {
+                piece.updateUI();
+            })
         }
     }
 
-    legalPlace() {
-        let data = this.hive.data;
-        for (var i = 0; i < this.neighbors.length; i++) {
-            let offset = this.neighbors[i]
-            if (0 <= offset.row && offset.row < data.length && 0 <= offset.col && offset.col < data[0].length) {
-                console.log(this.hive.data[offset.row][offset.col].hexagon.piece)
-                if (this.hive.data[offset.row][offset.col].piece.length) {
-                    return true
-                }
-            }
-        }
-        console.log("You can't place it there! Needs to be by another white piece")
-        return false
-    }
+    // legalPlace() {
+    //     let data = this.hive.data;
+    //     for (var i = 0; i < this.neighbors.length; i++) {
+    //         let offset = this.neighbors[i]
+    //         if (0 <= offset.row && offset.row < data.length && 0 <= offset.col && offset.col < data[0].length) {
+    //             console.log(this.hive.data[offset.row][offset.col].hexagon.piece)
+    //             if (this.hive.data[offset.row][offset.col].piece.length) {
+    //                 return true
+    //             }
+    //         }
+    //     }
+    //     console.log("You can't place it there! Needs to be by another white piece")
+    //     return false
+    // }
 }
 
 export class Hive
@@ -116,11 +165,10 @@ export class Hive
         this.numRows = numRows;
         this.numCols = numCols;
 
-        // scroll through pieces
-        this.pieceActive = 0
-
         this.firstMove = true
 
+        // scroll through pieces
+        this.pieceClicked = null
         this.whitePieces = []
         this.blackPieces = []
 
@@ -132,15 +180,8 @@ export class Hive
 
         this.createCells()
         this.createPieces()
-        this.piecesUI = new PiecesUI(this.scene, this)
 
-        this.scene.input.on('wheel', this.wheelScrolled, this);
-    }
-
-    wheelScrolled(pointer, gameObjects, deltaX, deltaY, deltaZ) {
-        if (deltaY > 0) {
-            this.pieceActive = (this.pieceActive + 1) % this.whitePieces.length
-        }
+        this.piecesUI = new PiecesLeftUI(this.scene, this)
     }
 
     createCells()

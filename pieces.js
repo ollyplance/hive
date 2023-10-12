@@ -4,12 +4,17 @@ class Piece {
         this.hive = hive
         this.side = side
         this.name = ""
+        this.active = false
         this.color = 0xCCCCCC
     }
 
     getMovesFrom(hex)
     {
         return []
+    }
+
+    legalPlace(hex){
+        return true
     }
 }
 
