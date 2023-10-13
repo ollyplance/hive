@@ -78,6 +78,9 @@ export class Hex {
 		}
 		return results;
 	}
+	equal(n) {
+		return (this.q === n.q && this.r === n.r && this.s === n.s)
+	}
 }
 
 Hex.directions = [
