@@ -31,8 +31,8 @@ function shrinkHexagon(corners, size) {
 
 export class PiecesLeftUI {
 	constructor(gameManager, playerSide, x, y) {
-		this.gameManager = gameManager
-		this.playerSide = playerSide
+		this.gameManager = gameManager;
+		this.playerSide = playerSide;
 
 		this.piecesLeft = this.gameManager.add.group();
 		var orientation = Layout.flat;
@@ -51,7 +51,7 @@ export class PiecesLeftUI {
 						new OffsetCoord(col, row)
 					);
 					let corners = this.piecesLeftLayout.polygonCorners(hex);
-					let smallerCorners = shrinkHexagon(corners, 4)
+					let smallerCorners = shrinkHexagon(corners, 4);
 
 					const hexagonUI = this.gameManager.add.polygon(
 						0,
@@ -186,10 +186,7 @@ class Cell {
 	// change turn
 	pointerDown() {
 		let pieceToPlace = this.gameManager.currentPlayer.pieceClicked;
-		if (
-			pieceToPlace &&
-			(pieceToPlace.legalMove(this.hex, this.hive.data))
-		) {
+		if (pieceToPlace && pieceToPlace.legalMove(this.hex, this.hive.data)) {
 			this.gameManager.currentPlayer.makeMove(this, this.hex);
 		} else if (
 			!pieceToPlace &&
@@ -228,15 +225,16 @@ export class Hive {
 		for (var row = 0; row < this.numRows; row++) {
 			this.data[row] = [];
 			for (var col = 0; col < this.numCols; col++) {
-				this.data[row][col] = new Cell(this.gameManager, this, row, col);
+				this.data[row][col] = new Cell(
+					this.gameManager,
+					this,
+					row,
+					col
+				);
 			}
 		}
 	}
 
-	
-
 	// TODO: take current player and make pieces available -> else set interactive false and make grey
-	nextTurn() {
-
-	}
+	nextTurn() {}
 }

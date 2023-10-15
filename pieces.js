@@ -24,13 +24,10 @@ class Piece {
 			}
 			let offset = OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, toHex);
 			let cell = data[offset.row][offset.col];
-			// // add dummy cell to board -- deleted later
-			// cell.piece.push(this);
-			// // can not place an initial piece ontop of another or make an island
-			let result =
-				!(cell?.piece.length >= 1) && this.checkForIslands(toHex, data);
-			// cell.piece.pop();
-			return result;
+			// can not place an initial piece ontop of another or make an island
+			return (
+				!(cell?.piece.length >= 1) && this.checkForIslands(toHex, data)
+			);
 		}
 		return this.legalMovePerPiece(toHex, data);
 	}
@@ -86,8 +83,9 @@ class Piece {
 		for (var row = 0; row < data.length; row++) {
 			for (var col = 0; col < data[0].length; col++) {
 				// check if piece is either the new cell or not the old cell
-				if (!(prevOffset && prevOffset.row === row && prevOffset.col === col && data[row][col].piece.length <= 1)
-					&& (data[row][col].piece.length ||
+				if (
+					(prevPieceSearchable(row, col, prevOffset) ||
+						data[row][col].piece.length ||
 						(offset.row === row && offset.col === col)) &&
 					!seen.has(`${row},${col}`)
 				) {
@@ -95,6 +93,7 @@ class Piece {
 					i += 1;
 				}
 				if (i > 1) {
+					console.log(seen);
 					return false;
 				}
 			}
@@ -109,16 +108,22 @@ class Piece {
 					0 <= nOffset.col &&
 					nOffset.col < data[0].length
 				) {
+					console.log(nOffset.row, nOffset.col, prevOffset);
+					console.log(
+						prevPieceSearchable(
+							nOffset.row,
+							nOffset.col,
+							prevOffset
+						)
+					);
 					if (
-						!(
-							prevOffset &&
-							prevOffset.row === nOffset.row &&
-							prevOffset.col === nOffset.col &&
-							data[nOffset.row][nOffset.col].piece.length <= 1
-						) &&
-						(data[nOffset.row][nOffset.col].piece.length ||
-							(offset.row === nOffset.row &&
-								offset.col === nOffset.col)) &&
+						(prevPieceSearchable(
+							nOffset.row,
+							nOffset.col,
+							prevOffset
+						) ||
+							data[nOffset.row][nOffset.col].piece.length ||
+							(row === nOffset.row && col === nOffset.col)) &&
 						!seen.has(`${nOffset.row},${nOffset.col}`)
 					) {
 						search(nOffset.row, nOffset.col);
@@ -126,6 +131,16 @@ class Piece {
 				}
 			}
 		}
+
+		function prevPieceSearchable(row, col, offset) {
+			return (
+				offset === null ||
+				offset.row !== row ||
+				offset.col !== col ||
+				data[row][col].piece.length > 1
+			);
+		}
+		console.log(seen);
 		return true;
 	}
 
@@ -194,10 +209,11 @@ class Queen extends Piece {
 			return false;
 		}
 		for (var i = 0; i < 6; i++) {
-			//neighbor is within 1 hex of prev piece
-			if (toHex.neighbor(i).equal(this.currHex)) {
-				// check islands now too - more expensive
-
+			//neighbor is within 1 hex of prev piece and check islands
+			if (
+				toHex.neighbor(i).equal(this.currHex) &&
+				this.checkForIslands(toHex, data)
+			) {
 				return true;
 			}
 		}
