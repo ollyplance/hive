@@ -1,11 +1,4 @@
-import {
-	DoubledCoord,
-	Hex,
-	Layout,
-	OffsetCoord,
-	Orientation,
-	Point,
-} from "./js/hexgrid.js";
+import { Layout, OffsetCoord, Point } from "./js/hexgrid.js";
 
 function shrinkHexagon(corners, size) {
 	var hexagonCenterX =

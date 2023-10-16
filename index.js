@@ -1,12 +1,4 @@
-import { Ant, Beetle, Grasshopper, Piece, Queen, Spider } from "./pieces.js";
-import {
-	DoubledCoord,
-	Hex,
-	Layout,
-	OffsetCoord,
-	Orientation,
-	Point,
-} from "./js/hexgrid.js";
+import { Ant, Beetle, Grasshopper, Queen, Spider } from "./pieces.js";
 import { Hive, PiecesLeftUI } from "./hive.js";
 
 class GameManager extends Phaser.Scene {

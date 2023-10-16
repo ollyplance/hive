@@ -1,5 +1,4 @@
-import { Hex, OffsetCoord } from "./js/hexgrid.js";
-
+import { OffsetCoord } from "./js/hexgrid.js";
 import { Side } from "./index.js";
 
 class Piece {
@@ -25,7 +24,7 @@ class Piece {
 			let offset = this.hive.getOffsetFromHex(toHex);
 			let cell = this.hive.getCellFromOffset(offset);
 			// can not place an initial piece ontop of another or make an island
-			return !(cell?.piece.length >= 1) && this.checkForIslands(toHex);
+			return !(cell?.piece.length >= 1) && this.checkForIslands();
 		}
 		return this.legalMovePerPiece(toHex);
 	}
@@ -45,19 +44,17 @@ class Piece {
 		return true;
 	}
 
-	// checks to make sure move does not break board
-	// TODO: make sure board isnt broken during transit as well
-	checkForIslands(toHex) {
+	// checks to make sure move does not break board during transit
+	checkForIslands() {
 		const seen = new Set();
 		let data = this.hive.data;
-		let offset = this.hive.getOffsetFromHex(toHex);
 		let prevOffset = this.hive.getOffsetFromHex(this.currHex);
 		var i = 0;
 
 		for (var row = 0; row < data.length; row++) {
 			for (var col = 0; col < data[0].length; col++) {
 				if (
-					pieceExists(row, col, offset, prevOffset) &&
+					pieceExists(row, col, prevOffset) &&
 					!seen.has(`${row},${col}`)
 				) {
 					search(row, col);
@@ -79,12 +76,7 @@ class Piece {
 					nOffset.col < data[0].length
 				) {
 					if (
-						pieceExists(
-							nOffset.row,
-							nOffset.col,
-							offset,
-							prevOffset
-						) &&
+						pieceExists(nOffset.row, nOffset.col, prevOffset) &&
 						!seen.has(`${nOffset.row},${nOffset.col}`)
 					) {
 						search(nOffset.row, nOffset.col);
@@ -93,16 +85,11 @@ class Piece {
 			}
 		}
 
-		function pieceExists(row, col, newPieceOffset, prevPieceOffset) {
-			// if there is nothing in the row but the new piece is there
-			// or
+		function pieceExists(row, col, prevPieceOffset) {
 			// there is something in the row and the old piece does not exist or the old piece is not there
 			// or
 			// there is something in the row and the old piece is there but there is more than one piece
 			return (
-				(!data[row][col].piece.length &&
-					newPieceOffset.row === row &&
-					newPieceOffset.col === col) ||
 				(data[row][col].piece.length &&
 					(!prevPieceOffset ||
 						prevPieceOffset.row !== row ||
@@ -117,56 +104,74 @@ class Piece {
 		return true;
 	}
 
+	// backtracking search from the new position to old position
+	searchAntSpider(offset, currOffset, seen, distance, maxDistance = null) {
+		if (
+			(!maxDistance || distance === maxDistance) &&
+			offset.row === currOffset.row &&
+			offset.col === currOffset.col
+		) {
+			return true;
+		}
+		seen.add(`${offset.row},${offset.col}`);
+		for (var i = 0; i < 6; i++) {
+			let offsetCube = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, offset);
+			let nOffset = this.hive.getOffsetFromHex(offsetCube.neighbor(i));
+
+			let rightNeighbor = (i + 1) % 6;
+			let leftNeighbor = i ? i - 1 : 5;
+			// if direction is not closed off - i.e. can slide into space
+			if (
+				!this.hive.getCellFromHex(offsetCube.neighbor(rightNeighbor))
+					.piece.length ||
+				!this.hive.getCellFromHex(offsetCube.neighbor(leftNeighbor))
+					.piece.length
+			) {
+				let nCell = this.hive.getCellFromOffset(nOffset);
+				let cCell = this.hive.getCellFromOffset(offset);
+				// nCells neighboring pieces
+				let nNeighborPieces = nCell.getNeighborsWithPieces();
+				// currCells neighboring pieces
+				let cNeighborPieces = new Set(cCell.getNeighborsWithPieces());
+				// nCell does not have a piece already and
+				// neighborCell has at least one similar neighboring pieces
+				if (
+					!nCell.piece.length &&
+					nNeighborPieces.filter((x) => {
+						return cNeighborPieces.has(x);
+					}).length
+				) {
+					// if new cell has not been seen before
+					if (
+						!seen.has(`${nOffset.row},${nOffset.col}`) &&
+						this.searchAntSpider(
+							nOffset,
+							currOffset,
+							seen,
+							distance + 1,
+							maxDistance
+						)
+					) {
+						return true;
+					}
+				}
+			}
+		}
+		seen.delete(`${offset.row},${offset.col}`);
+		return false;
+	}
+
 	// returns if move is valid acording to piece's properties
 	legalMovePerPiece(toHex) {
 		return false;
 	}
 
 	// // TODO: Later -- for giving valid spaces before hand - turn on or off in the future
-	// getMovesFrom(hex, data) {
-	// 	return [];
-	// }
 
 	// DFS of board to find outer ring of possible moves.
 	// TODO: In the future I can give possible spots - for now, I want to just
 	// get the game working lol....
-	// getInitialPlacements(data, side) {
-	// 	const validPlacements = new Set();
-	// 	const seen = new Set();
-	// 	for (var row = 0; row < data.length; row++) {
-	// 		for (var col = 0; col < data[0].length; col++) {
-	// 			if (data[row][col].piece.length && !seen.has(`${row},${col}`)) {
-	// 				searchForPlacements(row, col);
-	// 			}
-	// 		}
-	// 	}
-
-	// 	function searchForPlacements(row, col) {
-	// 		seen.add(`${row},${col}`);
-	// 		for (var i = 0; i < data[row][col].neighbors.length; i++) {
-	// 			const offset = data[row][col].neighbors[i];
-	// 			if (
-	// 				0 <= offset.row &&
-	// 				offset.row < data.length &&
-	// 				0 <= offset.col &&
-	// 				offset.col < data[0].length
-	// 			) {
-	// 				// check for color
-	// 				if (
-	// 					data[offset.row][offset.col].piece.length &&
-	// 					!seen.has(`${offset.row},${offset.col}`)
-	// 				) {
-	// 					searchForPlacements(offset.row, offset.col);
-	// 				} else if (data[offset.row][offset.col].piece.length == 0) {
-	// 					validPlacements.add(`${offset.row},${offset.col}`);
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// 	// TODO: check to make sure only touching sides pieces
-	// 	function checkEmpty() {}
-	// 	return validPlacements;
-	// }
+	// version history for this code.
 }
 
 class Queen extends Piece {
@@ -178,15 +183,23 @@ class Queen extends Piece {
 
 	legalMovePerPiece(toHex) {
 		// check to make sure piece is not moved on top of an existing piece
-		let offset = this.hive.getOffsetFromHex(toHex);
-		if (this.hive.getCellFromOffset(offset).piece.length) {
+		if (this.hive.getCellFromHex(toHex).piece.length) {
 			return false;
 		}
 		for (var i = 0; i < 6; i++) {
-			//neighbor is within 1 hex of prev piece and check islands
+			let rightNeighbor = (i + 1) % 6;
+			let leftNeighbor = i ? i - 1 : 5;
+			// if movement is within 1 hex of current piece
+			// and direction is not closed off - i.e. can slide into space
+			// and check islands
 			if (
-				toHex.neighbor(i).equal(this.currHex) &&
-				this.checkForIslands(toHex)
+				this.currHex.neighbor(i).equal(toHex) &&
+				(!this.hive.getCellFromHex(this.currHex.neighbor(rightNeighbor))
+					.piece.length ||
+					!this.hive.getCellFromHex(
+						this.currHex.neighbor(leftNeighbor)
+					).piece.length) &&
+				this.checkForIslands()
 			) {
 				return true;
 			}
@@ -203,7 +216,31 @@ class Grasshopper extends Piece {
 	}
 
 	legalMovePerPiece(toHex) {
+		// check to make sure piece is not moved on top of an existing piece
+		if (this.hive.getCellFromHex(toHex).piece.length) {
+			return false;
+		}
+
+		for (var direction = 0; direction < 6; direction++) {
+			let neighborHex = this.currHex.neighbor(direction);
+			let neighborCell = this.hive.getCellFromHex(neighborHex);
+			// make sure move hops over at least one current piece
+			if (neighborCell.piece.length) {
+				// get the first open spot
+				let firstOpen = firstOpenHex(neighborHex, direction, this.hive);
+				if (firstOpen.equal(toHex)) {
+					return this.checkForIslands();
+				}
+			}
+		}
 		return false;
+
+		function firstOpenHex(hex, direction, hive) {
+			if (!hive.getCellFromHex(hex).piece.length) {
+				return hex;
+			}
+			return firstOpenHex(hex.neighbor(direction), direction, hive);
+		}
 	}
 }
 
@@ -215,11 +252,24 @@ class Beetle extends Piece {
 	}
 
 	legalMovePerPiece(toHex) {
+		// if piece is moved ontop of existing piece, sliding rules don't apply
+		if (this.hive.getCellFromHex(toHex).piece.length) {
+			return this.checkForIslands();
+		}
 		for (var i = 0; i < 6; i++) {
-			// new placement is within 1 hex of prev piece and check islands
+			let rightNeighbor = (i + 1) % 6;
+			let leftNeighbor = i ? i - 1 : 5;
+			// if movement is within 1 hex of current piece
+			// and direction is not closed off - i.e. can slide into space
+			// and check islands
 			if (
-				toHex.neighbor(i).equal(this.currHex) &&
-				this.checkForIslands(toHex)
+				this.currHex.neighbor(i).equal(toHex) &&
+				(!this.hive.getCellFromHex(this.currHex.neighbor(rightNeighbor))
+					.piece.length ||
+					!this.hive.getCellFromHex(
+						this.currHex.neighbor(leftNeighbor)
+					).piece.length) &&
+				this.checkForIslands()
 			) {
 				return true;
 			}
@@ -242,65 +292,16 @@ class Spider extends Piece {
 			return false;
 		}
 		// remove piece from space for now
+		// TODO: make this so you dont need to adjust the board possibly
 		let currOffset = this.hive.getOffsetFromHex(this.currHex);
 		let piece = this.hive.getCellFromOffset(currOffset).piece.pop();
 
 		const seenSet = new Set();
 
-		// backtracking search from the new position to old position
-		function search(offset, distance, seen, hive) {
-			let offsetCube = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, offset);
-			if (
-				distance === 3 &&
-				offset.row === currOffset.row &&
-				offset.col === currOffset.col
-			) {
-				return true;
-			}
-			seen.add(`${offset.row},${offset.col}`);
-			for (var i = 0; i < 6; i++) {
-				let nOffset = hive.getOffsetFromHex(offsetCube.neighbor(i));
-				// if new cell has not been seen before
-				let rightNeighbor = (i + 1) % 6;
-				let leftNeighbor = i ? i - 1 : 5;
-				// if direction is not closed off
-				if (
-					!hive.getCellFromHex(offsetCube.neighbor(rightNeighbor))
-						.piece.length ||
-					!hive.getCellFromHex(offsetCube.neighbor(leftNeighbor))
-						.piece.length
-				) {
-					let nCell = hive.getCellFromOffset(nOffset);
-					let cCell = hive.getCellFromOffset(offset);
-					// nCells neighboring pieces
-					let nNeighborPieces = nCell.getNeighborsWithPieces();
-					// currCells neighboring pieces
-					let cNeighborPieces = new Set(
-						cCell.getNeighborsWithPieces()
-					);
-					// nCell does not have a piece already and
-					// neighborCell has at least one similar neighboring pieces
-					if (
-						!nCell.piece.length &&
-						nNeighborPieces.filter((x) => {
-							return cNeighborPieces.has(x);
-						}).length
-					) {
-						if (
-							!seen.has(`${nOffset.row},${nOffset.col}`) &&
-							search(nOffset, distance + 1, seen, hive)
-						) {
-							return true;
-						}
-					}
-				}
-			}
-			seen.delete(`${offset.row},${offset.col}`);
-			return false;
-		}
-		let result = search(offset, 0, seenSet, this.hive);
+		let result = this.searchAntSpider(offset, currOffset, seenSet, 0, 3);
+		// place piece back on board - move is handled seperately
 		this.hive.getCellFromOffset(currOffset).piece.push(piece);
-		return result && this.checkForIslands(toHex);
+		return result && this.checkForIslands();
 	}
 }
 
@@ -311,8 +312,26 @@ class Ant extends Piece {
 		this.color = 0x96b6c5;
 	}
 
+	// a non-limited spider...
 	legalMovePerPiece(toHex) {
-		return false;
+		let offset = this.hive.getOffsetFromHex(toHex);
+		let currOffset = this.hive.getOffsetFromHex(this.currHex);
+		// piece is not being moved on top of itself
+		if (offset.row === currOffset.row && offset.col === currOffset.col) {
+			return false;
+		}
+		// check to make sure piece is not moved on top of an existing piece
+		if (this.hive.getCellFromOffset(offset).piece.length) {
+			return false;
+		}
+
+		// remove piece from space for now
+		let piece = this.hive.getCellFromOffset(currOffset).piece.pop();
+		const seenSet = new Set();
+
+		let result = this.searchAntSpider(offset, currOffset, seenSet, 0);
+		this.hive.getCellFromOffset(currOffset).piece.push(piece);
+		return result && this.checkForIslands();
 	}
 }
 
