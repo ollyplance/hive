@@ -52,19 +52,24 @@ class GameManager extends Phaser.Scene {
 			Phaser.Input.Keyboard.KeyCodes.ESC
 		);
 
+		this.hive = new Hive(this, hexSize, numRows, numCols);
+
 		// scroll through pieces
 		this.whiteSide = new PlayerSide(this, Side.White, 700, 440);
 		this.blackSide = new PlayerSide(this, Side.Black, 700, 60);
-		
+
 		this.currentPlayer = this.whiteSide;
-		this.hive = new Hive(this, hexSize, numRows, numCols);
+
 		escapeKey.on("down", () => {
 			this.currentPlayer.pieceClicked = null;
 		});
 	}
 
 	turnOver() {
-		this.currentPlayer = (this.currentPlayer.side === this.blackSide.side) ? this.whiteSide : this.blackSide
+		this.currentPlayer =
+			this.currentPlayer.side === this.blackSide.side
+				? this.whiteSide
+				: this.blackSide;
 		this.hive.nextTurn();
 	}
 }
@@ -74,7 +79,7 @@ class PlayerSide {
 		this.gameManager = gameManager;
 		this.side = side;
 		this.pieces = [];
-		this.firstMove = true
+		this.firstMove = true;
 		this.pieceClicked = null;
 		this.createPieces();
 		this.piecesUI = new PiecesLeftUI(this.gameManager, this, xPos, yPos);
@@ -83,18 +88,18 @@ class PlayerSide {
 	createPieces() {
 		for (var i = 0; i < 3; i++) {
 			if (i < 1) {
-				this.pieces.push(new Queen(this.hive, this));
+				this.pieces.push(new Queen(this.gameManager.hive, this));
 			}
 			if (i < 2) {
 				this.pieces.push(
-					new Spider(this.hive, this),
-					new Beetle(this.hive, this)
+					new Spider(this.gameManager.hive, this),
+					new Beetle(this.gameManager.hive, this)
 				);
 			}
 			if (i < 3) {
 				this.pieces.push(
-					new Grasshopper(this.hive, this),
-					new Ant(this.hive, this)
+					new Grasshopper(this.gameManager.hive, this),
+					new Ant(this.gameManager.hive, this)
 				);
 			}
 		}
@@ -104,11 +109,7 @@ class PlayerSide {
 		this.firstMove = false;
 		let prevHex = this.pieceClicked.currHex;
 		if (prevHex) {
-			let prevOffset = OffsetCoord.qoffsetFromCube(
-				OffsetCoord.ODD,
-				prevHex
-			);
-			let prevCell = this.gameManager.hive.data[prevOffset.row][prevOffset.col];
+			let prevCell = this.gameManager.hive.getCellFromHex(prevHex);
 			if (prevCell) {
 				prevCell.piece.pop();
 				prevCell.updateUI();
@@ -118,14 +119,14 @@ class PlayerSide {
 		cell.piece.push(this.pieceClicked);
 		this.pieceClicked = null;
 		this.piecesUI.updateUI();
-		this.gameManager.turnOver()
+		this.gameManager.turnOver();
 	}
 }
 
 export const Side = {
-  White: true,
-  Black: false
-}
+	White: true,
+	Black: false,
+};
 
 let gameConfig = {
 	type: Phaser.AUTO,

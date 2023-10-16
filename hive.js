@@ -160,6 +160,15 @@ class Cell {
 		}
 	}
 
+	getNeighborsWithPieces() {
+		return this.neighbors
+			.filter(
+				(nOffset) =>
+					this.hive.getCellFromOffset(nOffset).piece.length > 0
+			)
+			.map((offset) => `${offset.row},${offset.col}`);
+	}
+	z;
 	updateUI() {
 		this.hexagon.setFillStyle(this.getCurrentColor());
 		this.hexagon.setStrokeStyle(4, this.getCurrentStroke());
@@ -233,6 +242,20 @@ export class Hive {
 				);
 			}
 		}
+	}
+
+	getCellFromHex(hex) {
+		let offset = OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, hex);
+		return this.data[offset.row][offset.col];
+	}
+
+	getOffsetFromHex(hex) {
+		return hex ? OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, hex) : null;
+	}
+
+	// TODO: null checks on these
+	getCellFromOffset(offset) {
+		return this.data[offset.row][offset.col];
 	}
 
 	// TODO: take current player and make pieces available -> else set interactive false and make grey

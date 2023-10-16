@@ -14,31 +14,26 @@ class Piece {
 	}
 
 	// returns if move is valid
-	legalMove(toHex, data) {
+	legalMove(toHex) {
 		if (!this.currHex) {
 			if (
 				!this.playerSide.firstMove &&
-				!this.checkNeighborColors(toHex, data)
+				!this.checkNeighborColors(toHex)
 			) {
 				return false;
 			}
-			let offset = OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, toHex);
-			let cell = data[offset.row][offset.col];
+			let offset = this.hive.getOffsetFromHex(toHex);
+			let cell = this.hive.getCellFromOffset(offset);
 			// can not place an initial piece ontop of another or make an island
-			return (
-				!(cell?.piece.length >= 1) && this.checkForIslands(toHex, data)
-			);
+			return !(cell?.piece.length >= 1) && this.checkForIslands(toHex);
 		}
-		return this.legalMovePerPiece(toHex, data);
+		return this.legalMovePerPiece(toHex);
 	}
 
-	checkNeighborColors(toHex, data) {
+	checkNeighborColors(toHex) {
 		for (var i = 0; i < 6; i++) {
-			let offset = OffsetCoord.qoffsetFromCube(
-				OffsetCoord.ODD,
-				toHex.neighbor(i)
-			);
-			let cell = data[offset.row][offset.col];
+			let offset = this.hive.getOffsetFromHex(toHex.neighbor(i));
+			let cell = this.hive.getCellFromOffset(offset);
 			if (
 				cell.piece.length &&
 				cell.piece[cell.piece.length - 1].playerSide.side !==
@@ -50,50 +45,25 @@ class Piece {
 		return true;
 	}
 
-	// movePiecesAndCheckIslands(toHex, data) {
-	// 	let offset = OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, toHex);
-	// 	let cell = data[offset.row][offset.col];
-	// 	// add dummy cell to board -- deleted later
-	// 	cell.piece.push(this);
-	// 	let prevCell = null
-	// 	let prevPiece = null
-	// 	if (this.currHex) {
-	// 		let prevOffset = OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, this.currHex);
-	// 		prevCell = data[prevOffset.row][prevOffset.col];
-	// 		prevPiece = currCell.pop()
-	// 	}
-	// 	// can not place an initial piece ontop of another or make an island
-	// 	let result =
-	// 		!(cell?.piece.length > 1) && this.checkForIslands(data);
-	// 	cell.piece.pop();
-	// 	if (prevCell && prevPiece) {
-	// 		prevCell.push(prevPiece);
-	// 	}
-	// 	return result;
-	// }
-
 	// checks to make sure move does not break board
-	checkForIslands(toHex, data) {
+	// TODO: make sure board isnt broken during transit as well
+	checkForIslands(toHex) {
 		const seen = new Set();
-		const offset = OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, toHex);
-		const prevOffset = this.currHex
-			? OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, toHex)
-			: null;
+		let data = this.hive.data;
+		let offset = this.hive.getOffsetFromHex(toHex);
+		let prevOffset = this.hive.getOffsetFromHex(this.currHex);
 		var i = 0;
+
 		for (var row = 0; row < data.length; row++) {
 			for (var col = 0; col < data[0].length; col++) {
-				// check if piece is either the new cell or not the old cell
 				if (
-					(prevPieceSearchable(row, col, prevOffset) ||
-						data[row][col].piece.length ||
-						(offset.row === row && offset.col === col)) &&
+					pieceExists(row, col, offset, prevOffset) &&
 					!seen.has(`${row},${col}`)
 				) {
 					search(row, col);
 					i += 1;
 				}
 				if (i > 1) {
-					console.log(seen);
 					return false;
 				}
 			}
@@ -108,22 +78,13 @@ class Piece {
 					0 <= nOffset.col &&
 					nOffset.col < data[0].length
 				) {
-					console.log(nOffset.row, nOffset.col, prevOffset);
-					console.log(
-						prevPieceSearchable(
-							nOffset.row,
-							nOffset.col,
-							prevOffset
-						)
-					);
 					if (
-						(prevPieceSearchable(
+						pieceExists(
 							nOffset.row,
 							nOffset.col,
+							offset,
 							prevOffset
-						) ||
-							data[nOffset.row][nOffset.col].piece.length ||
-							(row === nOffset.row && col === nOffset.col)) &&
+						) &&
 						!seen.has(`${nOffset.row},${nOffset.col}`)
 					) {
 						search(nOffset.row, nOffset.col);
@@ -132,20 +93,32 @@ class Piece {
 			}
 		}
 
-		function prevPieceSearchable(row, col, offset) {
+		function pieceExists(row, col, newPieceOffset, prevPieceOffset) {
+			// if there is nothing in the row but the new piece is there
+			// or
+			// there is something in the row and the old piece does not exist or the old piece is not there
+			// or
+			// there is something in the row and the old piece is there but there is more than one piece
 			return (
-				offset === null ||
-				offset.row !== row ||
-				offset.col !== col ||
-				data[row][col].piece.length > 1
+				(!data[row][col].piece.length &&
+					newPieceOffset.row === row &&
+					newPieceOffset.col === col) ||
+				(data[row][col].piece.length &&
+					(!prevPieceOffset ||
+						prevPieceOffset.row !== row ||
+						prevPieceOffset.col !== col)) ||
+				(prevPieceOffset &&
+					prevPieceOffset.row === row &&
+					prevPieceOffset.col === col &&
+					data[row][col].piece.length > 1)
 			);
 		}
-		console.log(seen);
+
 		return true;
 	}
 
 	// returns if move is valid acording to piece's properties
-	legalMovePerPiece(toHex, data) {
+	legalMovePerPiece(toHex) {
 		return false;
 	}
 
@@ -203,16 +176,17 @@ class Queen extends Piece {
 		this.color = 0xf1c27b;
 	}
 
-	legalMovePerPiece(toHex, data) {
-		let offset = OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, toHex);
-		if (data[offset.row][offset.col].piece.length) {
+	legalMovePerPiece(toHex) {
+		// check to make sure piece is not moved on top of an existing piece
+		let offset = this.hive.getOffsetFromHex(toHex);
+		if (this.hive.getCellFromOffset(offset).piece.length) {
 			return false;
 		}
 		for (var i = 0; i < 6; i++) {
 			//neighbor is within 1 hex of prev piece and check islands
 			if (
 				toHex.neighbor(i).equal(this.currHex) &&
-				this.checkForIslands(toHex, data)
+				this.checkForIslands(toHex)
 			) {
 				return true;
 			}
@@ -228,7 +202,7 @@ class Grasshopper extends Piece {
 		this.color = 0x79ac78;
 	}
 
-	legalMovePerPiece(toHex, data) {
+	legalMovePerPiece(toHex) {
 		return false;
 	}
 }
@@ -240,7 +214,16 @@ class Beetle extends Piece {
 		this.color = 0xbeadfa;
 	}
 
-	legalMovePerPiece(toHex, data) {
+	legalMovePerPiece(toHex) {
+		for (var i = 0; i < 6; i++) {
+			// new placement is within 1 hex of prev piece and check islands
+			if (
+				toHex.neighbor(i).equal(this.currHex) &&
+				this.checkForIslands(toHex)
+			) {
+				return true;
+			}
+		}
 		return false;
 	}
 }
@@ -252,8 +235,72 @@ class Spider extends Piece {
 		this.color = 0xef9595;
 	}
 
-	legalMovePerPiece(toHex, data) {
-		return false;
+	legalMovePerPiece(toHex) {
+		// check to make sure piece is not moved on top of an existing piece
+		let offset = this.hive.getOffsetFromHex(toHex);
+		if (this.hive.getCellFromOffset(offset).piece.length) {
+			return false;
+		}
+		// remove piece from space for now
+		let currOffset = this.hive.getOffsetFromHex(this.currHex);
+		let piece = this.hive.getCellFromOffset(currOffset).piece.pop();
+
+		const seenSet = new Set();
+
+		// backtracking search from the new position to old position
+		function search(offset, distance, seen, hive) {
+			let offsetCube = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, offset);
+			if (
+				distance === 3 &&
+				offset.row === currOffset.row &&
+				offset.col === currOffset.col
+			) {
+				return true;
+			}
+			seen.add(`${offset.row},${offset.col}`);
+			for (var i = 0; i < 6; i++) {
+				let nOffset = hive.getOffsetFromHex(offsetCube.neighbor(i));
+				// if new cell has not been seen before
+				let rightNeighbor = (i + 1) % 6;
+				let leftNeighbor = i ? i - 1 : 5;
+				// if direction is not closed off
+				if (
+					!hive.getCellFromHex(offsetCube.neighbor(rightNeighbor))
+						.piece.length ||
+					!hive.getCellFromHex(offsetCube.neighbor(leftNeighbor))
+						.piece.length
+				) {
+					let nCell = hive.getCellFromOffset(nOffset);
+					let cCell = hive.getCellFromOffset(offset);
+					// nCells neighboring pieces
+					let nNeighborPieces = nCell.getNeighborsWithPieces();
+					// currCells neighboring pieces
+					let cNeighborPieces = new Set(
+						cCell.getNeighborsWithPieces()
+					);
+					// nCell does not have a piece already and
+					// neighborCell has at least one similar neighboring pieces
+					if (
+						!nCell.piece.length &&
+						nNeighborPieces.filter((x) => {
+							return cNeighborPieces.has(x);
+						}).length
+					) {
+						if (
+							!seen.has(`${nOffset.row},${nOffset.col}`) &&
+							search(nOffset, distance + 1, seen, hive)
+						) {
+							return true;
+						}
+					}
+				}
+			}
+			seen.delete(`${offset.row},${offset.col}`);
+			return false;
+		}
+		let result = search(offset, 0, seenSet, this.hive);
+		this.hive.getCellFromOffset(currOffset).piece.push(piece);
+		return result && this.checkForIslands(toHex);
 	}
 }
 
@@ -264,7 +311,7 @@ class Ant extends Piece {
 		this.color = 0x96b6c5;
 	}
 
-	legalMovePerPiece(toHex, data) {
+	legalMovePerPiece(toHex) {
 		return false;
 	}
 }
