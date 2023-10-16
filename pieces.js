@@ -24,7 +24,7 @@ class Piece {
 			let offset = this.hive.getOffsetFromHex(toHex);
 			let cell = this.hive.getCellFromOffset(offset);
 			// can not place an initial piece ontop of another or make an island
-			return !(cell?.piece.length >= 1) && this.checkForIslands();
+			return !(cell?.piece.length >= 1) && this.checkForIslands(toHex);
 		}
 		return this.legalMovePerPiece(toHex);
 	}
@@ -45,63 +45,97 @@ class Piece {
 	}
 
 	// checks to make sure move does not break board during transit
-	checkForIslands() {
-		const seen = new Set();
-		let data = this.hive.data;
-		let prevOffset = this.hive.getOffsetFromHex(this.currHex);
-		var i = 0;
+	checkForIslands(toHex) {
+		// checks for islands during and after transit of piece
+		return (
+			checkForIslandsHelper(this.currHex, toHex, this.hive, true) &&
+			checkForIslandsHelper(this.currHex, toHex, this.hive, false)
+		);
 
-		for (var row = 0; row < data.length; row++) {
-			for (var col = 0; col < data[0].length; col++) {
-				if (
-					pieceExists(row, col, prevOffset) &&
-					!seen.has(`${row},${col}`)
-				) {
-					search(row, col);
-					i += 1;
-				}
-				if (i > 1) {
-					return false;
-				}
-			}
-		}
-		function search(row, col) {
-			seen.add(`${row},${col}`);
-			for (var i = 0; i < data[row][col].neighbors.length; i++) {
-				const nOffset = data[row][col].neighbors[i];
-				if (
-					0 <= nOffset.row &&
-					nOffset.row < data.length &&
-					0 <= nOffset.col &&
-					nOffset.col < data[0].length
-				) {
+		function checkForIslandsHelper(currHex, toHex, hive, duringTransit) {
+			const seen = new Set();
+			let data = hive.data;
+			let offset = hive.getOffsetFromHex(toHex);
+			let prevOffset = hive.getOffsetFromHex(currHex);
+			var i = 0;
+
+			for (var row = 0; row < data.length; row++) {
+				for (var col = 0; col < data[0].length; col++) {
 					if (
-						pieceExists(nOffset.row, nOffset.col, prevOffset) &&
-						!seen.has(`${nOffset.row},${nOffset.col}`)
+						pieceExists(
+							row,
+							col,
+							offset,
+							prevOffset,
+							duringTransit
+						) &&
+						!seen.has(`${row},${col}`)
 					) {
-						search(nOffset.row, nOffset.col);
+						search(row, col);
+						i += 1;
+					}
+					if (i > 1) {
+						return false;
 					}
 				}
 			}
-		}
 
-		function pieceExists(row, col, prevPieceOffset) {
-			// there is something in the row and the old piece does not exist or the old piece is not there
-			// or
-			// there is something in the row and the old piece is there but there is more than one piece
-			return (
-				(data[row][col].piece.length &&
-					(!prevPieceOffset ||
-						prevPieceOffset.row !== row ||
-						prevPieceOffset.col !== col)) ||
-				(prevPieceOffset &&
-					prevPieceOffset.row === row &&
-					prevPieceOffset.col === col &&
-					data[row][col].piece.length > 1)
-			);
-		}
+			function search(row, col) {
+				seen.add(`${row},${col}`);
+				for (var i = 0; i < data[row][col].neighbors.length; i++) {
+					const nOffset = data[row][col].neighbors[i];
+					if (
+						0 <= nOffset.row &&
+						nOffset.row < data.length &&
+						0 <= nOffset.col &&
+						nOffset.col < data[0].length
+					) {
+						if (
+							pieceExists(
+								nOffset.row,
+								nOffset.col,
+								offset,
+								prevOffset,
+								duringTransit
+							) &&
+							!seen.has(`${nOffset.row},${nOffset.col}`)
+						) {
+							search(nOffset.row, nOffset.col);
+						}
+					}
+				}
+			}
 
-		return true;
+			function pieceExists(
+				row,
+				col,
+				newPieceOffset,
+				prevPieceOffset,
+				duringTransit
+			) {
+				// we are not checking in transit islands and there is nothing in the row but the new piece is there
+				// or
+				// there is something in the row and the old piece does not exist or the old piece is not there
+				// or
+				// there is something in the row and the old piece is there but there is more than one piece
+				return (
+					(!duringTransit &&
+						!data[row][col].piece.length &&
+						newPieceOffset.row === row &&
+						newPieceOffset.col === col) ||
+					(data[row][col].piece.length &&
+						(!prevPieceOffset ||
+							prevPieceOffset.row !== row ||
+							prevPieceOffset.col !== col)) ||
+					(prevPieceOffset &&
+						prevPieceOffset.row === row &&
+						prevPieceOffset.col === col &&
+						data[row][col].piece.length > 1)
+				);
+			}
+			console.log(seen);
+			return true;
+		}
 	}
 
 	// backtracking search from the new position to old position
@@ -199,7 +233,7 @@ class Queen extends Piece {
 					!this.hive.getCellFromHex(
 						this.currHex.neighbor(leftNeighbor)
 					).piece.length) &&
-				this.checkForIslands()
+				this.checkForIslands(toHex)
 			) {
 				return true;
 			}
@@ -229,7 +263,7 @@ class Grasshopper extends Piece {
 				// get the first open spot
 				let firstOpen = firstOpenHex(neighborHex, direction, this.hive);
 				if (firstOpen.equal(toHex)) {
-					return this.checkForIslands();
+					return this.checkForIslands(toHex);
 				}
 			}
 		}
@@ -254,7 +288,7 @@ class Beetle extends Piece {
 	legalMovePerPiece(toHex) {
 		// if piece is moved ontop of existing piece, sliding rules don't apply
 		if (this.hive.getCellFromHex(toHex).piece.length) {
-			return this.checkForIslands();
+			return this.checkForIslands(toHex);
 		}
 		for (var i = 0; i < 6; i++) {
 			let rightNeighbor = (i + 1) % 6;
@@ -269,7 +303,7 @@ class Beetle extends Piece {
 					!this.hive.getCellFromHex(
 						this.currHex.neighbor(leftNeighbor)
 					).piece.length) &&
-				this.checkForIslands()
+				this.checkForIslands(toHex)
 			) {
 				return true;
 			}
@@ -301,7 +335,7 @@ class Spider extends Piece {
 		let result = this.searchAntSpider(offset, currOffset, seenSet, 0, 3);
 		// place piece back on board - move is handled seperately
 		this.hive.getCellFromOffset(currOffset).piece.push(piece);
-		return result && this.checkForIslands();
+		return result && this.checkForIslands(toHex);
 	}
 }
 
@@ -331,7 +365,7 @@ class Ant extends Piece {
 
 		let result = this.searchAntSpider(offset, currOffset, seenSet, 0);
 		this.hive.getCellFromOffset(currOffset).piece.push(piece);
-		return result && this.checkForIslands();
+		return result && this.checkForIslands(toHex);
 	}
 }
 
