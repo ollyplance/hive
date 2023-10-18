@@ -1,5 +1,5 @@
 import { OffsetCoord } from "./js/hexgrid.js";
-import { Side } from "./index.js";
+import { Side } from "./game-manager.js";
 
 class Piece {
 	constructor(hive, playerSide) {
@@ -14,11 +14,17 @@ class Piece {
 
 	// returns if move is valid
 	legalMove(toHex) {
+		// if queen has not been placed by 4th move
+		if (
+			this.playerSide.numMoves >= 3 &&
+			this.playerSide.queen &&
+			!this.playerSide.queen.currHex &&
+			!(this instanceof Queen)
+		) {
+			return false;
+		}
 		if (!this.currHex) {
-			if (
-				!this.playerSide.firstMove &&
-				!this.checkNeighborColors(toHex)
-			) {
+			if (this.playerSide.numMoves && !this.checkNeighborColors(toHex)) {
 				return false;
 			}
 			let offset = this.hive.getOffsetFromHex(toHex);
@@ -26,7 +32,11 @@ class Piece {
 			// can not place an initial piece ontop of another or make an island
 			return !(cell?.piece.length >= 1) && this.checkForIslands(toHex);
 		}
-		return this.legalMovePerPiece(toHex);
+		return (
+			this.playerSide.queen &&
+			this.playerSide.queen.currHex &&
+			this.legalMovePerPiece(toHex)
+		);
 	}
 
 	checkNeighborColors(toHex) {
@@ -133,7 +143,6 @@ class Piece {
 						data[row][col].piece.length > 1)
 				);
 			}
-			console.log(seen);
 			return true;
 		}
 	}

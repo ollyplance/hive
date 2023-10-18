@@ -1,97 +1,5 @@
 import { Layout, OffsetCoord, Point } from "./js/hexgrid.js";
-
-function shrinkHexagon(corners, size) {
-	var hexagonCenterX =
-		corners.reduce(function (sum, vertex) {
-			return sum + vertex.x;
-		}, 0) / corners.length;
-
-	var hexagonCenterY =
-		corners.reduce(function (sum, vertex) {
-			return sum + vertex.y;
-		}, 0) / corners.length;
-
-	return corners.map((vertex) => {
-		var dx = vertex.x - hexagonCenterX; // Calculate the difference in X from the center
-		var dy = vertex.y - hexagonCenterY; // Calculate the difference in Y from the center
-		var length = Math.sqrt(dx * dx + dy * dy); // Calculate the distance from the center
-		var scale = (length - size) / length; // 2 pixels smaller on all sides
-		var newX = hexagonCenterX + dx * scale;
-		var newY = hexagonCenterY + dy * scale;
-		return new Phaser.Math.Vector2(newX, newY);
-	});
-}
-
-export class PiecesLeftUI {
-	constructor(gameManager, playerSide, x, y) {
-		this.gameManager = gameManager;
-		this.playerSide = playerSide;
-
-		this.piecesLeft = this.gameManager.add.group();
-		var orientation = Layout.flat;
-		this.piecesLeftLayout = new Layout(
-			orientation,
-			new Point(30, 30),
-			new Point(x, y)
-		);
-
-		var index = 0;
-		for (var row = 0; row < 6; row++) {
-			for (var col = 0; col < 2; col++) {
-				if (index < this.playerSide.pieces.length) {
-					const hex = OffsetCoord.qoffsetToCube(
-						OffsetCoord.ODD,
-						new OffsetCoord(col, row)
-					);
-					let corners = this.piecesLeftLayout.polygonCorners(hex);
-					let smallerCorners = shrinkHexagon(corners, 4);
-
-					const hexagonUI = this.gameManager.add.polygon(
-						0,
-						0,
-						smallerCorners
-					);
-
-					hexagonUI
-						.setData("row", row)
-						.setData("col", col)
-						.setData("index", index)
-						.setInteractive(
-							new Phaser.Geom.Polygon(corners),
-							Phaser.Geom.Polygon.Contains
-						)
-						.setFillStyle(this.playerSide.pieces[index].color)
-						.setStrokeStyle(
-							4,
-							this.playerSide.pieces[index].borderColor
-						)
-						.on("pointerdown", () => {
-							var piece =
-								this.playerSide.pieces[
-									hexagonUI.getData("index")
-								];
-							if (!piece.currHex) {
-								this.playerSide.pieceClicked = piece;
-							}
-						});
-					this.piecesLeft.add(hexagonUI);
-				}
-				index += 1;
-			}
-		}
-	}
-
-	// Updates the UI after a piece has been played and is marked active.
-	updateUI() {
-		this.piecesLeft.children.entries.forEach((element) => {
-			var piece = this.playerSide.pieces[element.getData("index")];
-			if (piece.currHex) {
-				element.setFillStyle();
-				element.setStrokeStyle();
-			}
-		});
-	}
-}
+import { blendColors, shrinkHexagon } from "./helper.js";
 
 class Cell {
 	constructor(gameManager, hive, row, col) {
@@ -161,7 +69,7 @@ class Cell {
 			)
 			.map((offset) => `${offset.row},${offset.col}`);
 	}
-	z;
+
 	updateUI() {
 		this.hexagon.setFillStyle(this.getCurrentColor());
 		this.hexagon.setStrokeStyle(4, this.getCurrentStroke());
@@ -174,8 +82,21 @@ class Cell {
 			this.hexagon.setFillStyle(piece.color);
 			this.hexagon.setStrokeStyle(4, piece.borderColor);
 		} else {
-			this.hexagon.setFillStyle(0xdddddd, 1);
-			this.hexagon.setStrokeStyle(4, 0xdddddd, 1);
+			// blend hover color with current piece color
+			let hoverColor = 0xeeeeee;
+			let pieceColor = this.piece.length
+				? this.piece[this.piece.length - 1].color
+				: 0xdddddd;
+			let pieceBorderColor = this.piece.length
+				? this.piece[this.piece.length - 1].borderColor
+				: 0xdddddd;
+
+			this.hexagon.setFillStyle(blendColors(pieceColor, hoverColor), 1);
+			this.hexagon.setStrokeStyle(
+				4,
+				blendColors(pieceBorderColor, hoverColor),
+				1
+			);
 		}
 	}
 
