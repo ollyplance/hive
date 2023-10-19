@@ -1,3 +1,5 @@
+import Phaser from "phaser";
+
 function shrinkHexagon(corners, size) {
 	var hexagonCenterX =
 		corners.reduce(function (sum, vertex) {

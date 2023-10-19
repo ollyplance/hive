@@ -1,7 +1,8 @@
 import { Layout, OffsetCoord, Point } from "./js/hexgrid.js";
-import { blendColors, shrinkHexagon } from "./helper.js";
+import { blendColors, shrinkHexagon } from "./helper";
 
-import { Side } from "./game-manager.js";
+import Phaser from "phaser";
+import { Side } from "./game-manager";
 
 export class GameUI extends Phaser.Scene {
 	constructor() {

@@ -1,5 +1,7 @@
 import { Layout, OffsetCoord, Point } from "./js/hexgrid.js";
-import { blendColors, shrinkHexagon } from "./helper.js";
+import { blendColors, shrinkHexagon } from "./helper";
+
+import Phaser from "phaser";
 
 class Cell {
 	constructor(gameManager, hive, row, col) {

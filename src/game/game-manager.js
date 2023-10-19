@@ -1,6 +1,7 @@
-import { Ant, Beetle, Grasshopper, Queen, Spider } from "./pieces.js";
+import { Ant, Beetle, Grasshopper, Queen, Spider } from "./pieces";
 
-import { Hive } from "./hive.js";
+import { Hive } from "./hive";
+import Phaser from "phaser";
 
 export class GameManager extends Phaser.Scene {
 	constructor() {
