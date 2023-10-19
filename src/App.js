@@ -18,7 +18,7 @@ let gameConfig = {
 function App() {
 	const gameRef = useRef(null);
 	const [game, setGame] = useState();
-	const [initialize, setInitialize] = useState(false);
+	const [initialize, setInitialize] = useState(true);
 
 	const destroy = () => {
 		gameRef.current?.destroy();
@@ -43,9 +43,7 @@ function App() {
 							initialize={initialize}
 						/>
 						<div onClick={destroy} className="flex destroyButton">
-							<a href="#1" className="bttn">
-								Destroy
-							</a>
+							<a>Destroy</a>
 						</div>
 					</>
 				) : (
@@ -54,9 +52,7 @@ function App() {
 							onClick={() => setInitialize(true)}
 							className="flex"
 						>
-							<a href="#1" className="bttn">
-								Start new game :)
-							</a>
+							<a>Start new game :)</a>
 						</div>
 					</>
 				)}
