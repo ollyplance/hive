@@ -19,8 +19,8 @@ class Cell {
 			OffsetCoord.ODD,
 			new OffsetCoord(this.col, this.row)
 		);
-		let corners = this.hive.layout.polygonCorners(this.hex);
-		let smallerCorners = shrinkHexagon(corners, 4);
+		const corners = this.hive.layout.polygonCorners(this.hex);
+		const smallerCorners = shrinkHexagon(corners, 4);
 
 		this.hexagon = this.gameManager.add.polygon(0, 0, smallerCorners);
 
@@ -53,12 +53,9 @@ class Cell {
 	}
 
 	generateNeighbors() {
-		for (var i = 0; i < 6; i++) {
+		for (let i = 0; i < 6; i++) {
 			this.neighbors.push(
-				OffsetCoord.qoffsetFromCube(
-					OffsetCoord.ODD,
-					this.hex.neighbor(i)
-				)
+				OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, this.hex.neighbor(i))
 			);
 		}
 	}
@@ -66,8 +63,7 @@ class Cell {
 	getNeighborsWithPieces() {
 		return this.neighbors
 			.filter(
-				(nOffset) =>
-					this.hive.getCellFromOffset(nOffset).piece.length > 0
+				(nOffset) => this.hive.getCellFromOffset(nOffset).piece.length > 0
 			)
 			.map((offset) => `${offset.row},${offset.col}`);
 	}
@@ -79,17 +75,17 @@ class Cell {
 
 	// TODO: blend colors
 	pointerOver() {
-		let piece = this.gameManager.currentPlayer.pieceClicked;
+		const piece = this.gameManager.currentPlayer.pieceClicked;
 		if (piece) {
 			this.hexagon.setFillStyle(piece.color);
 			this.hexagon.setStrokeStyle(4, piece.borderColor);
 		} else {
 			// blend hover color with current piece color
-			let hoverColor = 0xeeeeee;
-			let pieceColor = this.piece.length
+			const hoverColor = 0xeeeeee;
+			const pieceColor = this.piece.length
 				? this.piece[this.piece.length - 1].color
 				: 0xdddddd;
-			let pieceBorderColor = this.piece.length
+			const pieceBorderColor = this.piece.length
 				? this.piece[this.piece.length - 1].borderColor
 				: 0xdddddd;
 
@@ -110,7 +106,7 @@ class Cell {
 	// or nothing. Else -- check if hex is in active pieces possible moves, then place piece, make active
 	// change turn
 	pointerDown() {
-		let pieceToPlace = this.gameManager.currentPlayer.pieceClicked;
+		const pieceToPlace = this.gameManager.currentPlayer.pieceClicked;
 		if (pieceToPlace && pieceToPlace.legalMove(this.hex, this.hive.data)) {
 			this.gameManager.currentPlayer.makeMove(this, this.hex);
 		} else if (
@@ -134,7 +130,7 @@ export class Hive {
 		this.numCols = numCols;
 
 		this.hexagons = this.gameManager.add.group();
-		var orientation = Layout.flat;
+		const orientation = Layout.flat;
 		this.layout = new Layout(
 			orientation,
 			new Point(this.hexSize, this.hexSize),
@@ -147,21 +143,16 @@ export class Hive {
 	}
 
 	createCells() {
-		for (var row = 0; row < this.numRows; row++) {
+		for (let row = 0; row < this.numRows; row++) {
 			this.data[row] = [];
-			for (var col = 0; col < this.numCols; col++) {
-				this.data[row][col] = new Cell(
-					this.gameManager,
-					this,
-					row,
-					col
-				);
+			for (let col = 0; col < this.numCols; col++) {
+				this.data[row][col] = new Cell(this.gameManager, this, row, col);
 			}
 		}
 	}
 
 	getCellFromHex(hex) {
-		let offset = OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, hex);
+		const offset = OffsetCoord.qoffsetFromCube(OffsetCoord.ODD, hex);
 		return this.data[offset.row][offset.col];
 	}
 
@@ -175,5 +166,5 @@ export class Hive {
 	}
 
 	// TODO: take current player and make pieces available -> else set interactive false and make grey
-	nextTurn() {}
+	// nextTurn() {}
 }

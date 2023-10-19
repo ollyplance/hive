@@ -8,7 +8,7 @@ export class GameUI extends Phaser.Scene {
 	constructor() {
 		super({ key: "GameUI", active: true });
 
-		var orientation = Layout.flat;
+		const orientation = Layout.flat;
 		this.piecesLeftLayout = new Layout(
 			orientation,
 			new Point(30, 30),
@@ -43,16 +43,16 @@ export class GameUI extends Phaser.Scene {
 	}
 
 	createPlayersLeftUI(player, pieceContainer) {
-		var index = 0;
-		for (var row = 0; row < 6; row++) {
-			for (var col = 0; col < 2; col++) {
+		let index = 0;
+		for (let row = 0; row < 6; row++) {
+			for (let col = 0; col < 2; col++) {
 				if (index < player.pieces.length) {
 					const hex = OffsetCoord.qoffsetToCube(
 						OffsetCoord.ODD,
 						new OffsetCoord(col, row)
 					);
-					let corners = this.piecesLeftLayout.polygonCorners(hex);
-					let smallerCorners = shrinkHexagon(corners, 4);
+					const corners = this.piecesLeftLayout.polygonCorners(hex);
+					const smallerCorners = shrinkHexagon(corners, 4);
 
 					const hexagonUI = this.add.polygon(0, 0, smallerCorners);
 
@@ -67,8 +67,7 @@ export class GameUI extends Phaser.Scene {
 						.setFillStyle(player.pieces[index].color)
 						.setStrokeStyle(4, player.pieces[index].borderColor)
 						.on("pointerdown", () => {
-							var piece =
-								player.pieces[hexagonUI.getData("index")];
+							const piece = player.pieces[hexagonUI.getData("index")];
 							if (!piece.currHex) {
 								player.pieceClicked = piece;
 							}
@@ -82,12 +81,9 @@ export class GameUI extends Phaser.Scene {
 
 	// Updates the UI after a piece has been played and is marked active.
 	updateUI(side) {
-		updateUIHelper(this.whiteSide, this.whitePieceContainer, side);
-		updateUIHelper(this.blackSide, this.blackPieceContainer, side);
-
 		function updateUIHelper(player, pieceContainer, side) {
 			pieceContainer.list.forEach((element) => {
-				var piece = player.pieces[element.getData("index")];
+				const piece = player.pieces[element.getData("index")];
 				if (piece.currHex) {
 					element.setFillStyle();
 					element.setStrokeStyle();
@@ -98,12 +94,12 @@ export class GameUI extends Phaser.Scene {
 				} else {
 					element
 						.setFillStyle(blendColors(piece.color, 0x333333))
-						.setStrokeStyle(
-							4,
-							blendColors(piece.borderColor, 0x333333)
-						);
+						.setStrokeStyle(4, blendColors(piece.borderColor, 0x333333));
 				}
 			});
 		}
+
+		updateUIHelper(this.whiteSide, this.whitePieceContainer, side);
+		updateUIHelper(this.blackSide, this.blackPieceContainer, side);
 	}
 }

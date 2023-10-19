@@ -27,8 +27,8 @@ class Piece {
 			if (this.playerSide.numMoves && !this.checkNeighborColors(toHex)) {
 				return false;
 			}
-			let offset = this.hive.getOffsetFromHex(toHex);
-			let cell = this.hive.getCellFromOffset(offset);
+			const offset = this.hive.getOffsetFromHex(toHex);
+			const cell = this.hive.getCellFromOffset(offset);
 			// can not place an initial piece ontop of another or make an island
 			return !(cell?.piece.length >= 1) && this.checkForIslands(toHex);
 		}
@@ -40,9 +40,9 @@ class Piece {
 	}
 
 	checkNeighborColors(toHex) {
-		for (var i = 0; i < 6; i++) {
-			let offset = this.hive.getOffsetFromHex(toHex.neighbor(i));
-			let cell = this.hive.getCellFromOffset(offset);
+		for (let i = 0; i < 6; i++) {
+			const offset = this.hive.getOffsetFromHex(toHex.neighbor(i));
+			const cell = this.hive.getCellFromOffset(offset);
 			if (
 				cell.piece.length &&
 				cell.piece[cell.piece.length - 1].playerSide.side !==
@@ -63,22 +63,17 @@ class Piece {
 		);
 
 		function checkForIslandsHelper(currHex, toHex, hive, duringTransit) {
+			// eslint-disable-next-line no-undef
 			const seen = new Set();
-			let data = hive.data;
-			let offset = hive.getOffsetFromHex(toHex);
-			let prevOffset = hive.getOffsetFromHex(currHex);
-			var i = 0;
+			const data = hive.data;
+			const offset = hive.getOffsetFromHex(toHex);
+			const prevOffset = hive.getOffsetFromHex(currHex);
+			let i = 0;
 
-			for (var row = 0; row < data.length; row++) {
-				for (var col = 0; col < data[0].length; col++) {
+			for (let row = 0; row < data.length; row++) {
+				for (let col = 0; col < data[0].length; col++) {
 					if (
-						pieceExists(
-							row,
-							col,
-							offset,
-							prevOffset,
-							duringTransit
-						) &&
+						pieceExists(row, col, offset, prevOffset, duringTransit) &&
 						!seen.has(`${row},${col}`)
 					) {
 						search(row, col);
@@ -92,7 +87,7 @@ class Piece {
 
 			function search(row, col) {
 				seen.add(`${row},${col}`);
-				for (var i = 0; i < data[row][col].neighbors.length; i++) {
+				for (let i = 0; i < data[row][col].neighbors.length; i++) {
 					const nOffset = data[row][col].neighbors[i];
 					if (
 						0 <= nOffset.row &&
@@ -157,25 +152,26 @@ class Piece {
 			return true;
 		}
 		seen.add(`${offset.row},${offset.col}`);
-		for (var i = 0; i < 6; i++) {
-			let offsetCube = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, offset);
-			let nOffset = this.hive.getOffsetFromHex(offsetCube.neighbor(i));
+		for (let i = 0; i < 6; i++) {
+			const offsetCube = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, offset);
+			const nOffset = this.hive.getOffsetFromHex(offsetCube.neighbor(i));
 
-			let rightNeighbor = (i + 1) % 6;
-			let leftNeighbor = i ? i - 1 : 5;
+			const rightNeighbor = (i + 1) % 6;
+			const leftNeighbor = i ? i - 1 : 5;
 			// if direction is not closed off - i.e. can slide into space
 			if (
-				!this.hive.getCellFromHex(offsetCube.neighbor(rightNeighbor))
-					.piece.length ||
-				!this.hive.getCellFromHex(offsetCube.neighbor(leftNeighbor))
-					.piece.length
+				!this.hive.getCellFromHex(offsetCube.neighbor(rightNeighbor)).piece
+					.length ||
+				!this.hive.getCellFromHex(offsetCube.neighbor(leftNeighbor)).piece
+					.length
 			) {
-				let nCell = this.hive.getCellFromOffset(nOffset);
-				let cCell = this.hive.getCellFromOffset(offset);
+				const nCell = this.hive.getCellFromOffset(nOffset);
+				const cCell = this.hive.getCellFromOffset(offset);
 				// nCells neighboring pieces
-				let nNeighborPieces = nCell.getNeighborsWithPieces();
+				const nNeighborPieces = nCell.getNeighborsWithPieces();
 				// currCells neighboring pieces
-				let cNeighborPieces = new Set(cCell.getNeighborsWithPieces());
+				// eslint-disable-next-line no-undef
+				const cNeighborPieces = new Set(cCell.getNeighborsWithPieces());
 				// nCell does not have a piece already and
 				// neighborCell has at least one similar neighboring pieces
 				if (
@@ -229,19 +225,18 @@ class Queen extends Piece {
 		if (this.hive.getCellFromHex(toHex).piece.length) {
 			return false;
 		}
-		for (var i = 0; i < 6; i++) {
-			let rightNeighbor = (i + 1) % 6;
-			let leftNeighbor = i ? i - 1 : 5;
+		for (let i = 0; i < 6; i++) {
+			const rightNeighbor = (i + 1) % 6;
+			const leftNeighbor = i ? i - 1 : 5;
 			// if movement is within 1 hex of current piece
 			// and direction is not closed off - i.e. can slide into space
 			// and check islands
 			if (
 				this.currHex.neighbor(i).equal(toHex) &&
-				(!this.hive.getCellFromHex(this.currHex.neighbor(rightNeighbor))
-					.piece.length ||
-					!this.hive.getCellFromHex(
-						this.currHex.neighbor(leftNeighbor)
-					).piece.length) &&
+				(!this.hive.getCellFromHex(this.currHex.neighbor(rightNeighbor)).piece
+					.length ||
+					!this.hive.getCellFromHex(this.currHex.neighbor(leftNeighbor)).piece
+						.length) &&
 				this.checkForIslands(toHex)
 			) {
 				return true;
@@ -264,13 +259,13 @@ class Grasshopper extends Piece {
 			return false;
 		}
 
-		for (var direction = 0; direction < 6; direction++) {
-			let neighborHex = this.currHex.neighbor(direction);
-			let neighborCell = this.hive.getCellFromHex(neighborHex);
+		for (let direction = 0; direction < 6; direction++) {
+			const neighborHex = this.currHex.neighbor(direction);
+			const neighborCell = this.hive.getCellFromHex(neighborHex);
 			// make sure move hops over at least one current piece
 			if (neighborCell.piece.length) {
 				// get the first open spot
-				let firstOpen = firstOpenHex(neighborHex, direction, this.hive);
+				const firstOpen = firstOpenHex(neighborHex, direction, this.hive);
 				if (firstOpen.equal(toHex)) {
 					return this.checkForIslands(toHex);
 				}
@@ -299,19 +294,18 @@ class Beetle extends Piece {
 		if (this.hive.getCellFromHex(toHex).piece.length) {
 			return this.checkForIslands(toHex);
 		}
-		for (var i = 0; i < 6; i++) {
-			let rightNeighbor = (i + 1) % 6;
-			let leftNeighbor = i ? i - 1 : 5;
+		for (let i = 0; i < 6; i++) {
+			const rightNeighbor = (i + 1) % 6;
+			const leftNeighbor = i ? i - 1 : 5;
 			// if movement is within 1 hex of current piece
 			// and direction is not closed off - i.e. can slide into space
 			// and check islands
 			if (
 				this.currHex.neighbor(i).equal(toHex) &&
-				(!this.hive.getCellFromHex(this.currHex.neighbor(rightNeighbor))
-					.piece.length ||
-					!this.hive.getCellFromHex(
-						this.currHex.neighbor(leftNeighbor)
-					).piece.length) &&
+				(!this.hive.getCellFromHex(this.currHex.neighbor(rightNeighbor)).piece
+					.length ||
+					!this.hive.getCellFromHex(this.currHex.neighbor(leftNeighbor)).piece
+						.length) &&
 				this.checkForIslands(toHex)
 			) {
 				return true;
@@ -330,18 +324,19 @@ class Spider extends Piece {
 
 	legalMovePerPiece(toHex) {
 		// check to make sure piece is not moved on top of an existing piece
-		let offset = this.hive.getOffsetFromHex(toHex);
+		const offset = this.hive.getOffsetFromHex(toHex);
 		if (this.hive.getCellFromOffset(offset).piece.length) {
 			return false;
 		}
 		// remove piece from space for now
 		// TODO: make this so you dont need to adjust the board possibly
-		let currOffset = this.hive.getOffsetFromHex(this.currHex);
-		let piece = this.hive.getCellFromOffset(currOffset).piece.pop();
+		const currOffset = this.hive.getOffsetFromHex(this.currHex);
+		const piece = this.hive.getCellFromOffset(currOffset).piece.pop();
 
+		// eslint-disable-next-line no-undef
 		const seenSet = new Set();
 
-		let result = this.searchAntSpider(offset, currOffset, seenSet, 0, 3);
+		const result = this.searchAntSpider(offset, currOffset, seenSet, 0, 3);
 		// place piece back on board - move is handled seperately
 		this.hive.getCellFromOffset(currOffset).piece.push(piece);
 		return result && this.checkForIslands(toHex);
@@ -357,8 +352,8 @@ class Ant extends Piece {
 
 	// a non-limited spider...
 	legalMovePerPiece(toHex) {
-		let offset = this.hive.getOffsetFromHex(toHex);
-		let currOffset = this.hive.getOffsetFromHex(this.currHex);
+		const offset = this.hive.getOffsetFromHex(toHex);
+		const currOffset = this.hive.getOffsetFromHex(this.currHex);
 		// piece is not being moved on top of itself
 		if (offset.row === currOffset.row && offset.col === currOffset.col) {
 			return false;
@@ -369,10 +364,11 @@ class Ant extends Piece {
 		}
 
 		// remove piece from space for now
-		let piece = this.hive.getCellFromOffset(currOffset).piece.pop();
+		const piece = this.hive.getCellFromOffset(currOffset).piece.pop();
+		// eslint-disable-next-line no-undef
 		const seenSet = new Set();
 
-		let result = this.searchAntSpider(offset, currOffset, seenSet, 0);
+		const result = this.searchAntSpider(offset, currOffset, seenSet, 0);
 		this.hive.getCellFromOffset(currOffset).piece.push(piece);
 		return result && this.checkForIslands(toHex);
 	}

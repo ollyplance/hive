@@ -45,15 +45,15 @@ export class Hex {
 		return this.subtract(b).len();
 	}
 	round() {
-		var qi = Math.round(this.q);
-		var ri = Math.round(this.r);
-		var si = Math.round(this.s);
-		var q_diff = Math.abs(qi - this.q);
-		var r_diff = Math.abs(ri - this.r);
-		var s_diff = Math.abs(si - this.s);
-		if (q_diff > r_diff && q_diff > s_diff) {
+		let qi = Math.round(this.q);
+		let ri = Math.round(this.r);
+		let si = Math.round(this.s);
+		const qDiff = Math.abs(qi - this.q);
+		const rDiff = Math.abs(ri - this.r);
+		const sDiff = Math.abs(si - this.s);
+		if (qDiff > rDiff && qDiff > sDiff) {
 			qi = -ri - si;
-		} else if (r_diff > s_diff) {
+		} else if (rDiff > sDiff) {
 			ri = -qi - si;
 		} else {
 			si = -qi - ri;
@@ -68,18 +68,18 @@ export class Hex {
 		);
 	}
 	linedraw(b) {
-		var N = this.distance(b);
-		var a_nudge = new Hex(this.q + 1e-6, this.r + 1e-6, this.s - 2e-6);
-		var b_nudge = new Hex(b.q + 1e-6, b.r + 1e-6, b.s - 2e-6);
-		var results = [];
-		var step = 1.0 / Math.max(N, 1);
-		for (var i = 0; i <= N; i++) {
-			results.push(a_nudge.lerp(b_nudge, step * i).round());
+		const N = this.distance(b);
+		const aNudge = new Hex(this.q + 1e-6, this.r + 1e-6, this.s - 2e-6);
+		const bNudge = new Hex(b.q + 1e-6, b.r + 1e-6, b.s - 2e-6);
+		const results = [];
+		const step = 1.0 / Math.max(N, 1);
+		for (let i = 0; i <= N; i++) {
+			results.push(aNudge.lerp(bNudge, step * i).round());
 		}
 		return results;
 	}
 	equal(n) {
-		return (this.q === n.q && this.r === n.r && this.s === n.s)
+		return this.q === n.q && this.r === n.r && this.s === n.s;
 	}
 }
 
@@ -105,34 +105,34 @@ export class OffsetCoord {
 		this.row = row;
 	}
 	static qoffsetFromCube(offset, h) {
-		var col = h.q;
-		var row = h.r + (h.q + offset * (h.q & 1)) / 2;
+		const col = h.q;
+		const row = h.r + (h.q + offset * (h.q & 1)) / 2;
 		if (offset !== OffsetCoord.EVEN && offset !== OffsetCoord.ODD) {
 			throw "offset must be EVEN (+1) or ODD (-1)";
 		}
 		return new OffsetCoord(col, row);
 	}
 	static qoffsetToCube(offset, h) {
-		var q = h.col;
-		var r = h.row - (h.col + offset * (h.col & 1)) / 2;
-		var s = -q - r;
+		const q = h.col;
+		const r = h.row - (h.col + offset * (h.col & 1)) / 2;
+		const s = -q - r;
 		if (offset !== OffsetCoord.EVEN && offset !== OffsetCoord.ODD) {
 			throw "offset must be EVEN (+1) or ODD (-1)";
 		}
 		return new Hex(q, r, s);
 	}
 	static roffsetFromCube(offset, h) {
-		var col = h.q + (h.r + offset * (h.r & 1)) / 2;
-		var row = h.r;
+		const col = h.q + (h.r + offset * (h.r & 1)) / 2;
+		const row = h.r;
 		if (offset !== OffsetCoord.EVEN && offset !== OffsetCoord.ODD) {
 			throw "offset must be EVEN (+1) or ODD (-1)";
 		}
 		return new OffsetCoord(col, row);
 	}
 	static roffsetToCube(offset, h) {
-		var q = h.col - (h.row + offset * (h.row & 1)) / 2;
-		var r = h.row;
-		var s = -q - r;
+		const q = h.col - (h.row + offset * (h.row & 1)) / 2;
+		const r = h.row;
+		const s = -q - r;
 		if (offset !== OffsetCoord.EVEN && offset !== OffsetCoord.ODD) {
 			throw "offset must be EVEN (+1) or ODD (-1)";
 		}
@@ -148,31 +148,31 @@ export class DoubledCoord {
 		this.row = row;
 	}
 	static qdoubledFromCube(h) {
-		var col = h.q;
-		var row = 2 * h.r + h.q;
+		const col = h.q;
+		const row = 2 * h.r + h.q;
 		return new DoubledCoord(col, row);
 	}
 	qdoubledToCube() {
-		var q = this.col;
-		var r = (this.row - this.col) / 2;
-		var s = -q - r;
+		const q = this.col;
+		const r = (this.row - this.col) / 2;
+		const s = -q - r;
 		return new Hex(q, r, s);
 	}
 	static rdoubledFromCube(h) {
-		var col = 2 * h.q + h.r;
-		var row = h.r;
+		const col = 2 * h.q + h.r;
+		const row = h.r;
 		return new DoubledCoord(col, row);
 	}
 	rdoubledToCube() {
-		var q = (this.col - this.row) / 2;
-		var r = this.row;
-		var s = -q - r;
+		const q = (this.col - this.row) / 2;
+		const r = this.row;
+		const s = -q - r;
 		return new Hex(q, r, s);
 	}
 }
 
 export class Orientation {
-	constructor(f0, f1, f2, f3, b0, b1, b2, b3, start_angle) {
+	constructor(f0, f1, f2, f3, b0, b1, b2, b3, startAngle) {
 		this.f0 = f0;
 		this.f1 = f1;
 		this.f2 = f2;
@@ -181,7 +181,7 @@ export class Orientation {
 		this.b1 = b1;
 		this.b2 = b2;
 		this.b3 = b3;
-		this.start_angle = start_angle;
+		this.startAngle = startAngle;
 	}
 }
 
@@ -192,36 +192,33 @@ export class Layout {
 		this.origin = origin;
 	}
 	hexToPixel(h) {
-		var M = this.orientation;
-		var size = this.size;
-		var origin = this.origin;
-		var x = (M.f0 * h.q + M.f1 * h.r) * size.x;
-		var y = (M.f2 * h.q + M.f3 * h.r) * size.y;
+		const M = this.orientation;
+		const size = this.size;
+		const origin = this.origin;
+		const x = (M.f0 * h.q + M.f1 * h.r) * size.x;
+		const y = (M.f2 * h.q + M.f3 * h.r) * size.y;
 		return new Point(x + origin.x, y + origin.y);
 	}
 	pixelToHex(p) {
-		var M = this.orientation;
-		var size = this.size;
-		var origin = this.origin;
-		var pt = new Point(
-			(p.x - origin.x) / size.x,
-			(p.y - origin.y) / size.y
-		);
-		var q = M.b0 * pt.x + M.b1 * pt.y;
-		var r = M.b2 * pt.x + M.b3 * pt.y;
+		const M = this.orientation;
+		const size = this.size;
+		const origin = this.origin;
+		const pt = new Point((p.x - origin.x) / size.x, (p.y - origin.y) / size.y);
+		const q = M.b0 * pt.x + M.b1 * pt.y;
+		const r = M.b2 * pt.x + M.b3 * pt.y;
 		return new Hex(q, r, -q - r);
 	}
 	hexCornerOffset(corner) {
-		var M = this.orientation;
-		var size = this.size;
-		var angle = (2.0 * Math.PI * (M.start_angle - corner)) / 6.0;
+		const M = this.orientation;
+		const size = this.size;
+		const angle = (2.0 * Math.PI * (M.startAngle - corner)) / 6.0;
 		return new Point(size.x * Math.cos(angle), size.y * Math.sin(angle));
 	}
 	polygonCorners(h) {
-		var corners = [];
-		var center = this.hexToPixel(h);
-		for (var i = 0; i < 6; i++) {
-			var offset = this.hexCornerOffset(i);
+		const corners = [];
+		const center = this.hexToPixel(h);
+		for (let i = 0; i < 6; i++) {
+			const offset = this.hexCornerOffset(i);
 			corners.push(new Point(center.x + offset.x, center.y + offset.y));
 		}
 		return corners;
