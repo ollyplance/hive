@@ -202,6 +202,7 @@ class Piece {
 	}
 
 	// returns if move is valid acording to piece's properties
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	legalMovePerPiece(toHex) {
 		return false;
 	}

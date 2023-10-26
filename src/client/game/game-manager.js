@@ -1,10 +1,9 @@
-import { PlayerSide, Side } from "./player";
-
 import { GameState } from "../../server/HiveState";
 import { Hive } from "./hive";
 import { OffsetCoord } from "./js/hexgrid.js";
 import Phaser from "phaser";
 import { Queen } from "./pieces.js";
+import { Side } from "./player";
 
 export class GameManager extends Phaser.Scene {
 	constructor() {

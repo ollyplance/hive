@@ -1,4 +1,4 @@
-import { ArraySchema, Schema, type } from '@colyseus/schema'
+import { Schema, type } from '@colyseus/schema'
 
 export enum GameState
 {
