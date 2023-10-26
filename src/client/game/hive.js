@@ -1,28 +1,45 @@
+import { Ant, Beetle, Grasshopper, Queen, Spider } from "./pieces";
 import { Layout, OffsetCoord, Point } from "./js/hexgrid.js";
 import { blendColors, shrinkHexagon } from "./helper";
 
 import Phaser from "phaser";
+import { Side } from "./player";
 
 class Cell {
-	constructor(gameManager, hive, row, col) {
+	constructor(gameManager, hive, row, col, startingPiece) {
 		this.gameManager = gameManager;
 		this.hive = hive;
 		this.row = row;
 		this.col = col;
 
-		// stack for bugs
-		this.piece = [];
-		// list of offset for each cell that is a neighbor
-		this.neighbors = [];
-
 		this.hex = OffsetCoord.qoffsetToCube(
 			OffsetCoord.ODD,
 			new OffsetCoord(this.col, this.row)
 		);
+
+		// stack for bugs
+		this.piece = [];
+		if (startingPiece) {
+			this.piece.push(startingPiece);
+			startingPiece.currHex = this.hex;
+		}
+		// list of offset for each cell that is a neighbor
+		this.neighbors = [];
+
 		const corners = this.hive.layout.polygonCorners(this.hex);
+		const pixel = this.hive.layout.hexToPixel(this.hex);
+
+		for (let i = 0; i < corners.length; i++) {
+			corners[i].x -= pixel.x;
+			corners[i].y -= pixel.y;
+		}
 		const smallerCorners = shrinkHexagon(corners, 4);
 
-		this.hexagon = this.gameManager.add.polygon(0, 0, smallerCorners);
+		this.hexagon = this.gameManager.add.polygon(
+			pixel.x,
+			pixel.y,
+			smallerCorners
+		);
 
 		this.hexagon
 			.setInteractive(
@@ -30,7 +47,7 @@ class Cell {
 				Phaser.Geom.Polygon.Contains
 			)
 			.setFillStyle(this.getCurrentColor())
-			.setStrokeStyle(4, 0xeeeeee)
+			.setStrokeStyle(4, this.getCurrentStroke())
 			.on("pointerover", this.pointerOver, this)
 			.on("pointerout", this.pointerOut, this)
 			.on("pointerdown", this.pointerDown, this);
@@ -75,7 +92,7 @@ class Cell {
 
 	// TODO: blend colors
 	pointerOver() {
-		const piece = this.gameManager.currentPlayer.pieceClicked;
+		const piece = this.gameManager.pieceClicked;
 		if (piece) {
 			this.hexagon.setFillStyle(piece.color);
 			this.hexagon.setStrokeStyle(4, piece.borderColor);
@@ -102,21 +119,23 @@ class Cell {
 		this.updateUI();
 	}
 
-	// click on hex. What I want to do: if no piece is actively clicked, either make a piece actively clicked
+	// click on hex and it is players turn. What I want to do: if no piece is actively clicked, either make a piece actively clicked
 	// or nothing. Else -- check if hex is in active pieces possible moves, then place piece, make active
 	// change turn
 	pointerDown() {
-		const pieceToPlace = this.gameManager.currentPlayer.pieceClicked;
+		if (!this.gameManager.currentTurn) {
+			return;
+		}
+		const pieceToPlace = this.gameManager.pieceClicked;
 		if (pieceToPlace && pieceToPlace.legalMove(this.hex, this.hive.data)) {
-			this.gameManager.currentPlayer.makeMove(this, this.hex);
+			pieceToPlace.active = true;
+			this.gameManager.makeMove(this.hex);
 		} else if (
 			!pieceToPlace &&
 			this.piece.length &&
-			this.piece[this.piece.length - 1].playerSide.side ===
-				this.gameManager.currentPlayer.side
+			this.piece[this.piece.length - 1].side == this.gameManager.side
 		) {
-			this.gameManager.currentPlayer.pieceClicked =
-				this.piece[this.piece.length - 1];
+			this.gameManager.pieceClicked = this.piece[this.piece.length - 1];
 		}
 	}
 }
@@ -129,7 +148,7 @@ export class Hive {
 		this.numRows = numRows;
 		this.numCols = numCols;
 
-		this.hexagons = this.gameManager.add.group();
+		this.hexagons = this.gameManager.add.container(0, 0);
 		const orientation = Layout.flat;
 		this.layout = new Layout(
 			orientation,
@@ -140,13 +159,70 @@ export class Hive {
 		this.data = [];
 
 		this.createCells();
+
+		// rotates board for the black side player
+		if (this.gameManager.server?.playerIndex === -1) {
+			const { width, height } = this.gameManager.scale;
+			const bounds = this.hexagons.getBounds();
+			this.hexagons.rotation = Phaser.Math.DegToRad(180);
+			this.hexagons.x = height - bounds.x;
+			this.hexagons.y = width - bounds.y;
+		}
 	}
 
 	createCells() {
-		for (let row = 0; row < this.numRows; row++) {
+		const myPieces = [];
+		const opponentPieces = [];
+		// TODO to make not both players sides white
+		this.createPieces(myPieces, Side.White);
+		this.createPieces(opponentPieces, Side.Black);
+		for (let row = 0; row < this.numRows + 2; row++) {
 			this.data[row] = [];
-			for (let col = 0; col < this.numCols; col++) {
-				this.data[row][col] = new Cell(this.gameManager, this, row, col);
+			if (row === 0) {
+				for (let col = 0; col < opponentPieces.length; col++) {
+					this.data[row][col] = new Cell(
+						this.gameManager,
+						this,
+						row,
+						col,
+						opponentPieces[col]
+					);
+				}
+			} else if (row === this.numRows + 1) {
+				for (let col = 0; col < myPieces.length; col++) {
+					this.data[row][col] = new Cell(
+						this.gameManager,
+						this,
+						row,
+						col,
+						myPieces[col]
+					);
+				}
+			} else {
+				for (let col = 0; col < this.numCols; col++) {
+					this.data[row][col] = new Cell(this.gameManager, this, row, col);
+				}
+			}
+		}
+	}
+
+	createPieces(pieces, side) {
+		for (let i = 0; i < 3; i++) {
+			if (i < 1) {
+				this.gameManager.queen = new Queen(this, this.gameManager, side);
+				pieces.push(this.gameManager.queen);
+			}
+			if (i < 2) {
+				pieces.push(
+					new Spider(this, this.gameManager, side),
+					new Beetle(this, this.gameManager, side)
+				);
+			}
+			if (i < 3) {
+				pieces.push(
+					new Grasshopper(this, this.gameManager, side),
+					new Ant(this, this.gameManager, side)
+				);
 			}
 		}
 	}

@@ -1,14 +1,15 @@
 import { OffsetCoord } from "./js/hexgrid.js";
-import { Side } from "./game-manager";
+import { Side } from "./player";
 
 class Piece {
-	constructor(hive, playerSide) {
+	constructor(hive, gameManager, side) {
 		this.hive = hive;
-		this.playerSide = playerSide;
+		this.gameManager = gameManager;
 		this.name = "";
+		this.side = side;
 		this.currHex = null;
-		this.borderColor =
-			this.playerSide.side === Side.White ? 0xdfd3c3 : 0x8b7e74;
+		this.active = false;
+		this.borderColor = this.side === Side.White ? 0xdfd3c3 : 0x8b7e74;
 		this.color = 0xcccccc;
 	}
 
@@ -16,15 +17,15 @@ class Piece {
 	legalMove(toHex) {
 		// if queen has not been placed by 4th move
 		if (
-			this.playerSide.numMoves >= 3 &&
-			this.playerSide.queen &&
-			!this.playerSide.queen.currHex &&
+			this.gameManager.numMoves >= 3 &&
+			this.gameManager.queen &&
+			!this.gameManager.queen.active &&
 			!(this instanceof Queen)
 		) {
 			return false;
 		}
-		if (!this.currHex) {
-			if (this.playerSide.numMoves && !this.checkNeighborColors(toHex)) {
+		if (!this.active) {
+			if (this.gameManager.numMoves && !this.checkNeighborColors(toHex)) {
 				return false;
 			}
 			const offset = this.hive.getOffsetFromHex(toHex);
@@ -33,8 +34,8 @@ class Piece {
 			return !(cell?.piece.length >= 1) && this.checkForIslands(toHex);
 		}
 		return (
-			this.playerSide.queen &&
-			this.playerSide.queen.currHex &&
+			this.gameManager.queen &&
+			this.gameManager.queen.active &&
 			this.legalMovePerPiece(toHex)
 		);
 	}
@@ -45,8 +46,7 @@ class Piece {
 			const cell = this.hive.getCellFromOffset(offset);
 			if (
 				cell.piece.length &&
-				cell.piece[cell.piece.length - 1].playerSide.side !==
-					this.playerSide.side
+				cell.piece[cell.piece.length - 1].side !== this.gameManager.side
 			) {
 				return false;
 			}
@@ -70,8 +70,9 @@ class Piece {
 			const prevOffset = hive.getOffsetFromHex(currHex);
 			let i = 0;
 
-			for (let row = 0; row < data.length; row++) {
-				for (let col = 0; col < data[0].length; col++) {
+			// don't search the extra rows with existing pieces
+			for (let row = 1; row < data.length - 1; row++) {
+				for (let col = 0; col < data[1].length; col++) {
 					if (
 						pieceExists(row, col, offset, prevOffset, duringTransit) &&
 						!seen.has(`${row},${col}`)
@@ -90,10 +91,10 @@ class Piece {
 				for (let i = 0; i < data[row][col].neighbors.length; i++) {
 					const nOffset = data[row][col].neighbors[i];
 					if (
-						0 <= nOffset.row &&
-						nOffset.row < data.length &&
+						1 <= nOffset.row &&
+						nOffset.row < data.length - 1 &&
 						0 <= nOffset.col &&
-						nOffset.col < data[0].length
+						nOffset.col < data[1].length
 					) {
 						if (
 							pieceExists(
@@ -214,8 +215,8 @@ class Piece {
 }
 
 class Queen extends Piece {
-	constructor(hive, side) {
-		super(hive, side);
+	constructor(hive, gameManager, currentPlayerPiece) {
+		super(hive, gameManager, currentPlayerPiece);
 		this.name = "Queen Bee";
 		this.color = 0xf1c27b;
 	}
@@ -247,8 +248,8 @@ class Queen extends Piece {
 }
 
 class Grasshopper extends Piece {
-	constructor(hive, side) {
-		super(hive, side);
+	constructor(hive, gameManager, side) {
+		super(hive, gameManager, side);
 		this.name = "Grasshopper";
 		this.color = 0x79ac78;
 	}
@@ -283,8 +284,8 @@ class Grasshopper extends Piece {
 }
 
 class Beetle extends Piece {
-	constructor(hive, side) {
-		super(hive, side);
+	constructor(hive, gameManager, side) {
+		super(hive, gameManager, side);
 		this.name = "Beetle";
 		this.color = 0xbeadfa;
 	}
@@ -316,8 +317,8 @@ class Beetle extends Piece {
 }
 
 class Spider extends Piece {
-	constructor(hive, side) {
-		super(hive, side);
+	constructor(hive, gameManager, side) {
+		super(hive, gameManager, side);
 		this.name = "Spider";
 		this.color = 0xef9595;
 	}
@@ -344,8 +345,8 @@ class Spider extends Piece {
 }
 
 class Ant extends Piece {
-	constructor(hive, side) {
-		super(hive, side);
+	constructor(hive, gameManager, side) {
+		super(hive, gameManager, side);
 		this.name = "Soldier Ant";
 		this.color = 0x96b6c5;
 	}
