@@ -3,7 +3,11 @@ import { Hive } from "./hive";
 import { OffsetCoord } from "./js/hexgrid.js";
 import Phaser from "phaser";
 import { Queen } from "./pieces.js";
-import { Side } from "./player";
+
+export const Side = {
+	White: true,
+	Black: false,
+};
 
 export class GameManager extends Phaser.Scene {
 	constructor() {
@@ -33,35 +37,6 @@ export class GameManager extends Phaser.Scene {
 		this.hexSize = 20;
 		this.numCols = 25;
 		this.numRows = Math.ceil(this.numCols * (3 / 4));
-
-		const cam = this.cameras.main;
-
-		cam.setBounds(
-			0,
-			0,
-			this.hexSize * (3 / 4) * this.numRows,
-			this.hexSize * 2 * this.numRows
-		);
-		cam.setViewport(0, 0, 800, this.hexSize * 2 * this.numRows);
-		cam.centerOn(
-			(this.numCols * this.hexSize) / 2,
-			(this.numRows * this.hexSize) / 2
-		);
-		cam.setZoom(1);
-
-		this.input.mousePointer.motionFactor = 0.5;
-		this.input.pointer1.motionFactor = 0.5;
-
-		// TODO: Add camera movement back in at the end
-		// help from https://codepen.io/samme/pen/XWJxgRG
-		this.input.on("pointermove", function (p) {
-			if (!p.isDown) return;
-
-			const { x, y } = p.velocity;
-
-			cam.scrollX -= x / cam.zoom;
-			cam.scrollY -= y / cam.zoom;
-		});
 
 		this.pieceClicked = null;
 		this.numMoves = 0;
@@ -133,7 +108,7 @@ export class GameManager extends Phaser.Scene {
 	}
 
 	checkQueenSurrounded() {
-		if (!this.queen || !this.queen.currHex) {
+		if (!this.queen || !this.queen.active || !this.queen.currHex) {
 			return false;
 		}
 		// if surrounded, game is over, player loses
@@ -165,10 +140,20 @@ export class GameManager extends Phaser.Scene {
 		}
 		toCell.piece.push(piece);
 		toCell.updateUI();
+
+		if (this.checkQueenSurrounded()) {
+			console.log("Loser!!");
+		}
 	}
 
 	handlePlayerTurnChanged(playerIndex) {
 		this.currentTurn = playerIndex === this.server?.playerIndex;
+		console.log(playerIndex);
+		const gameContainer = document.getElementById("game");
+		// change border to the next color
+		gameContainer.style.border = `20px solid ${
+			playerIndex === 0 ? "#dfd3c3" : "#8B7E74"
+		}`;
 		if (this.currentTurn) {
 			this.removeText();
 		} else {

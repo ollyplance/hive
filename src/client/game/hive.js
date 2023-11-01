@@ -3,7 +3,7 @@ import { Layout, OffsetCoord, Point } from "./js/hexgrid.js";
 import { blendColors, shrinkHexagon } from "./helper";
 
 import Phaser from "phaser";
-import { Side } from "./player";
+import { Side } from "./game-manager";
 
 class Cell {
 	constructor(gameManager, hive, row, col, startingPiece) {
@@ -21,7 +21,10 @@ class Cell {
 		this.piece = [];
 		if (startingPiece) {
 			this.piece.push(startingPiece);
-			startingPiece.currHex = this.hex;
+			startingPiece.currHex = OffsetCoord.qoffsetToCube(
+				OffsetCoord.ODD,
+				new OffsetCoord(this.col - 7, this.row)
+			);
 		}
 		// list of offset for each cell that is a neighbor
 		this.neighbors = [];
@@ -46,6 +49,7 @@ class Cell {
 				new Phaser.Geom.Polygon(corners),
 				Phaser.Geom.Polygon.Contains
 			)
+			.setInteractive({ cursor: "pointer" })
 			.setFillStyle(this.getCurrentColor())
 			.setStrokeStyle(4, this.getCurrentStroke())
 			.on("pointerover", this.pointerOver, this)
@@ -53,7 +57,6 @@ class Cell {
 			.on("pointerdown", this.pointerDown, this);
 
 		this.generateNeighbors();
-
 		this.hive.hexagons.add(this.hexagon);
 	}
 
@@ -161,12 +164,12 @@ export class Hive {
 		this.createCells();
 
 		// rotates board for the black side player
+		// TODO: Un-hard code this number
 		if (this.gameManager.server?.playerIndex === -1) {
 			const { width, height } = this.gameManager.scale;
-			const bounds = this.hexagons.getBounds();
+			this.hexagons.x += width;
+			this.hexagons.y += height;
 			this.hexagons.rotation = Phaser.Math.DegToRad(180);
-			this.hexagons.x = height - bounds.x;
-			this.hexagons.y = width - bounds.y;
 		}
 	}
 
@@ -184,7 +187,7 @@ export class Hive {
 						this.gameManager,
 						this,
 						row,
-						col,
+						col + 7,
 						opponentPieces[col]
 					);
 				}
@@ -194,7 +197,7 @@ export class Hive {
 						this.gameManager,
 						this,
 						row,
-						col,
+						col + 7,
 						myPieces[col]
 					);
 				}

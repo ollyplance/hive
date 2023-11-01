@@ -27,8 +27,6 @@ export default class PlayerMoveCommand extends Command<HiveState, Payload>
 			return
 		}
 
-		console.log(fromPosition, toPosition)
-
 		const from = new Position(fromPosition.row, fromPosition.col)
 		const to = new Position(toPosition.row, toPosition.col)
 		const move = new Move(clientIndex, from, to)

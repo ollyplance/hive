@@ -1,5 +1,5 @@
 import { OffsetCoord } from "./js/hexgrid.js";
-import { Side } from "./player";
+import { Side } from "./game-manager";
 
 class Piece {
 	constructor(hive, gameManager, side) {
