@@ -74,8 +74,6 @@ export class GameManager extends Phaser.Scene {
 		const toOffset = this.hive.getOffsetFromHex(toHex);
 		this.pieceClicked = null;
 
-		// TODO: CheckQueenSurrounded
-
 		this.server?.makeSelection(
 			fromOffset ? fromOffset.row : -1,
 			fromOffset ? fromOffset.col : -1,
